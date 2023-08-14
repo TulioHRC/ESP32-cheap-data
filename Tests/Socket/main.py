@@ -1,7 +1,7 @@
 import network 
 
-wifiName = 'Lorena'
-wifiPassword = '19716767'
+wifiName = ''
+wifiPassword = ''
 
 print("Connecting to ethernet...")
 
