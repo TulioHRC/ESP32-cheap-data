@@ -3,8 +3,8 @@
 import socket
 
 # Define o endereço e porta do servidor
-host = '127.0.0.1'
-port = 12345
+host = '0.0.0.0'
+port = 6677
 server_address = (host, port)
 
 # Cria um socket TCP para o cliente
