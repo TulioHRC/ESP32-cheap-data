@@ -3,9 +3,10 @@
 import socket
 
 # Define o endereço e porta do servidor
-host = '0.0.0.0'
+dhcp_hostname = 'esp32-cam' + '.local'
+server_ip = socket.gethostbyname(dhcp_hostname) 
 port = 6677
-server_address = (host, port)
+server_address = (server_ip, port)
 
 # Cria um socket TCP para o cliente
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

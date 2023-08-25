@@ -4,7 +4,7 @@ import socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Define o endereço e porta do servidor
-host = '127.0.0.1'
+host = '192.168.1.109'
 port = 12345
 server_address = (host, port)
 

@@ -1,11 +1,13 @@
 import network
+import socket
+import machine
 from machine import Pin
 import time
 
 flash = Pin(4, Pin.OUT)
 
-wifiName = 'teste'
-wifiPassword = 'ipoq6796'
+wifiName = 'TESTE-PLC'
+wifiPassword = 'hidropocos22'
 
 print("Connecting to ethernet...")
 flash.on()
@@ -13,29 +15,23 @@ flash.on()
 time.sleep(2)
 
 station = network.WLAN(network.STA_IF)
-station.active(True)
+station.active(1)
 
 while station.isconnected() == False: 
     print(".", end="")
-    time.sleep(1)
-    host = f'esp32-cam-{machine.unique_id()}'
-    station.config(dhcp_hostname = host)
-    station.connect(wifiName, wifiPassword)
+    #station.connect(wifiName, wifiPassword)
+    time.sleep(0.5)
 
-print(f"Connected to {wifiName}.")
+print(f"Connected to {wifiName}. In IP {station.ifconfig()}.")
 flash.off()
-
-#if station.isconnected(): print(f"Connected to {wifiName}.")
-#else: print("Error to connect ethernet.")
-
-import socket
 
 # Cria um socket TCP
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#server_socket.sethostname(hostname)
 
 # Define o endereço e porta do servidor
-hostname = station.config('dhcp_hostname')
-ip = station.ifconfig()[0]
+ip = '192.168.1.205'
+station.ifconfig((ip,'255.255.255.0','192.168.100.2','8.8.8.8'))
 port = 6677
 server_address = (ip, port)
 
@@ -46,7 +42,7 @@ server_socket.bind(server_address)
 # Define o número máximo de conexões em fila
 server_socket.listen(5)
 
-print(f"Servidor escutando em {hostname}:{port} e ip - {ip}")
+print(f"Servidor escutando em {station.ifconfig()}:{port} e ip - {ip}")
 
 while True:
     # Espera por uma conexão
