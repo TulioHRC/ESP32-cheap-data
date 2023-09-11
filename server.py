@@ -5,6 +5,9 @@ import network
 import time
 import socket
 import ssl
+import warnings
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 CERT_FILE = "certServer.crt"
@@ -54,7 +57,7 @@ class Server:
         data = self.sslAuthenticatedSocket.recv(1024)
 
         if data: 
-            self.sslAuthenticatedSocket.sendall(f"Message return...".encode())
+            self.sslAuthenticatedSocket.sendall(f"Message received...".encode())
             return data.decode()
         
         return "NULL"
