@@ -3,6 +3,61 @@
 import machine
 import network
 import time
+import socket
+import ssl
+
+
+CERT_FILE = "certServer.crt"
+KEY_FILE = "privateServer.key"
+CLIENT_CERT_FILE = "certClient.crt"
+
+
+class Server:
+    def __init__(self, serverAddress):
+        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.serverSocket.bind(serverAddress)
+        self.serverSocket.listen(5)
+        print(f"Server on {serverAddress[0]}:{serverAddress[1]}")
+
+    def communication(self):
+        clientSocket, clientAddress = self.serverSocket.accept()
+        print("\nConnection estabilished...\n")
+
+        self.sslAuthenticatedSocket = self.authentication(clientSocket)
+
+        if self.sslAuthenticatedSocket: return self.requestHandler()
+        else: clientSocket.close()
+        
+        return "NULL"
+        
+    def authentication(self, clientSocket):
+        try:
+            sslContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            sslContext.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
+            sslContext.load_verify_locations(cafile=CLIENT_CERT_FILE)
+            sslContext.verify_mode = ssl.CERT_REQUIRED
+
+            sslSocket = sslContext.wrap_socket(clientSocket, server_side=True)
+
+
+            clientCerts = sslSocket.getpeercert()
+            if clientCerts:
+                print(f"Authentication Passed.\n{clientCerts['subject']}\n")
+                return sslSocket
+
+            print("Authentication Failed!!!")
+
+        except Exception as e:
+            print(f"Authentication ERROR: {e}\n")
+
+    def requestHandler(self):
+        data = self.sslAuthenticatedSocket.recv(1024)
+
+        if data: 
+            self.sslAuthenticatedSocket.sendall(f"Message return...".encode())
+            return data.decode()
+        
+        return "NULL"
 
 
 class ESP32:
@@ -15,9 +70,14 @@ class ESP32:
 		self.STATIC_IP = "192.168.1.100"
 		self.PORT = 6677
 
-		self.wifiConnection(self.wifiName, self.wifiPassword)
+		try:
+			self.wifiConnection(self.wifiName, self.wifiPassword)
+			self.espServer = Server((self.STATIC_IP, self.PORT))
+			self.mainLoop()
+		except Exception as e:
+			print(f"\n\nError {e}\n\n")
+            machine.reset()
 
-	# def restart, Server (use class already created, modes)
 
 	def wifiConnection(self, name, password):
 		print("Starting WiFi connection...\n")
@@ -38,6 +98,15 @@ class ESP32:
 
 		time.sleep(0.5)
 		self.FLASH.off()
+    
+	def mainLoop(self):
+		while True:
+			response = self.espServer.communication()
+			if response != "NULL":
+				# Test only with flash
+				if response == "1" or response == 1: self.FLASH.on()
+				else: self.FLASH.off()
+		
 
 
 if __name__ == "__main__":
