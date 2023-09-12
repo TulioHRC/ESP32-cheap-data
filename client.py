@@ -2,6 +2,7 @@
 
 import machine
 import network
+import esp32
 import time
 import socket
 import ssl
@@ -48,7 +49,7 @@ class Client:
 class ESP32:
 	def __init__(self):
 		self.FLASH = machine.Pin(4, machine.Pin.OUT)
-        self.INPUT = machine.Pin(2, machine.Pin.IN)
+        self.INPUT = machine.Pin(2, machine.Pin.IN, machine.Pin.PULL_UP) # Connection of GND, resistor, and the floater in series, NF
         
         self.wifiName = ""
 		self.wifiPassword = ""
@@ -86,7 +87,14 @@ class ESP32:
 		self.FLASH.off()
     
 	def mainLoop(self):
-		self.espClient.sendData(self.INPUT.value())
+		data = self.INPUT.value()
+		if data == '1': data = 0
+		else: data = 1
+  
+		self.espClient.sendData(data)
+		esp32.wake_on_ext0(pin = self.INPUT, level = esp32.WAKEUP_ALL_LOW)
+  
+		machine.deepsleep(5000)
 		
 
 
