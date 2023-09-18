@@ -5,9 +5,6 @@ import network
 import time
 import socket
 import ssl
-import warnings
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 CERT_FILE = "certServer.crt"
@@ -26,7 +23,9 @@ class Server:
         clientSocket, clientAddress = self.serverSocket.accept()
         print("\nConnection estabilished...\n")
 
-        self.sslAuthenticatedSocket = self.authentication(clientSocket)
+        #self.sslAuthenticatedSocket = self.authentication(clientSocket)
+
+        return self.requestHandler(clientSocket) # For initial tests
 
         if self.sslAuthenticatedSocket: return self.requestHandler()
         else: clientSocket.close()
@@ -53,63 +52,66 @@ class Server:
         except Exception as e:
             print(f"Authentication ERROR: {e}\n")
 
-    def requestHandler(self):
-        data = self.sslAuthenticatedSocket.recv(1024)
+    def requestHandler(self, clientSocket=""):
+        if clientSocket: data = self.clientSocket.recv(1024)
+        else: self.sslAuthenticatedSocket.recv(1024)
 
         if data: 
-            self.sslAuthenticatedSocket.sendall(f"Message received...".encode())
+            if clientSocket: clientSocket.sendall(f"Message received...".encode())
+            else: self.sslAuthenticatedSocket.sendall(f"Message received...".encode())
+            
             return data.decode()
         
         return "NULL"
 
 
 class ESP32:
-	def __init__(self):
-		self.FLASH = machine.Pin(4, machine.Pin.OUT)
+    def __init__(self):
+        self.FLASH = machine.Pin(4, machine.Pin.OUT)
 
-		self.wifiName = ""
-		self.wifiPassword = ""
+        self.wifiName = ""
+        self.wifiPassword = ""
 
-		self.STATIC_IP = "192.168.1.100"
-		self.PORT = 6677
+        self.STATIC_IP = "192.168.1.100"
+        self.PORT = 6677
 
-		try:
-			self.wifiConnection(self.wifiName, self.wifiPassword)
-			self.espServer = Server((self.STATIC_IP, self.PORT))
-			self.mainLoop()
-		except Exception as e:
-			print(f"\n\nError {e}\n\n")
+        try:
+            self.wifiConnection(self.wifiName, self.wifiPassword)
+            self.espServer = Server((self.STATIC_IP, self.PORT))
+            self.mainLoop()
+        except Exception as e:
+            print(f"\n\nError {e}\n\n")
             machine.reset()
 
 
-	def wifiConnection(self, name, password):
-		print("Starting WiFi connection...\n")
+    def wifiConnection(self, name, password):
+        print("Starting WiFi connection...\n")
 
-		self.FLASH.on()
+        self.FLASH.on()
 
-		self.station = network.WLAN(network.STA_IF)
-		self.station.active(1)
-		self.station.connect(name, password)
+        self.station = network.WLAN(network.STA_IF)
+        self.station.active(1)
+        self.station.connect(name, password)
 
-		while self.station.isconnected() == 0:
-			print(".")
-			time.sleep(0.2)
+        while self.station.isconnected() == 0:
+            print(".")
+            time.sleep(0.2)
 
-		self.station.ifconfig((self.STATIC_IP, '255.255.255.0', '192.168.100.2', '8.8.8.8'))
+        self.station.ifconfig((self.STATIC_IP, '255.255.255.0', '192.168.100.2', '8.8.8.8'))
 
-		print(f"Connected to {name}, in IP {self.STATIC_IP}.")
+        print(f"Connected to {name}, in IP {self.STATIC_IP}.")
 
-		time.sleep(0.5)
-		self.FLASH.off()
+        time.sleep(0.5)
+        self.FLASH.off()
     
-	def mainLoop(self):
-		while True:
-			response = self.espServer.communication()
-			if response != "NULL":
-				# Test only with flash
-				if response == "1" or response == 1: self.FLASH.on()
-				else: self.FLASH.off()
-		
+    def mainLoop(self):
+        while True:
+            response = self.espServer.communication()
+            if response != "NULL":
+                # Test only with flash
+                if response == "1" or response == 1: self.FLASH.on()
+                else: self.FLASH.off()
+        
 
 
 if __name__ == "__main__":

@@ -6,9 +6,6 @@ import esp32
 import time
 import socket
 import ssl
-import warnings
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 CERT_FILE = "certClient.crt"
@@ -17,41 +14,42 @@ SERVER_CERT_FILE = "certServer.crt"
 
 
 class Client:
-    def __init__(self):
-        self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    def sendData(self, data, serverAddress):
-        self.sslClientSocket = self.secureConnection(serverAddress)
-        
-        if self.sslClientSocket: self.requestHandler(data)
-        else: self.clientSocket.close()
+	def __init__(self):
+		self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	
+	def sendData(self, data, serverAddress):
+		self.sslClientSocket = self.clientSocket # For tests without secureConnection - self.secureConnection(serverAddress)
+		self.sslClientSocket.connect(serverAddress)
+		
+		if self.sslClientSocket: self.requestHandler(data)
+		else: self.clientSocket.close()
 
-    def secureConnection(self, serverAddress):
-        try:
-            sslSocket = ssl.wrap_socket(self.clientSocket, certfile=CERT_FILE, keyfile=KEY_FILE, ca_certs=SERVER_CERT_FILE, cert_reqs=ssl.CERT_REQUIRED)
-            
-            sslSocket.connect(serverAddress)
-            print("\nConnection estabilished...\n")
+	def secureConnection(self, serverAddress):
+		try:
+			sslSocket = ssl.wrap_socket(self.clientSocket, certfile=CERT_FILE, keyfile=KEY_FILE, ca_certs=SERVER_CERT_FILE, cert_reqs=ssl.CERT_REQUIRED)
+			
+			sslSocket.connect(serverAddress)
+			print("\nConnection estabilished...\n")
 
-            return sslSocket
+			return sslSocket
 
-        except Exception as e:
-            print(f"\nConnection / Authentication ERROR: {e}\n")
+		except Exception as e:
+			print(f"\nConnection / Authentication ERROR: {e}\n")
 
-    def requestHandler(self, data):
-        self.sslClientSocket.sendall(data.encode())
+	def requestHandler(self, data):
+		self.sslClientSocket.sendall(data.encode())
 
-        serverResponse = self.sslClientSocket.recv(1024)
-        print(f"\nServer answer \"{serverResponse.decode()}\"\n")
+		serverResponse = self.sslClientSocket.recv(1024)
+		print(f"\nServer answer \"{serverResponse.decode()}\"\n")
 
 
 
 class ESP32:
 	def __init__(self):
 		self.FLASH = machine.Pin(4, machine.Pin.OUT)
-        self.INPUT = machine.Pin(2, machine.Pin.IN, machine.Pin.PULL_UP) # Connection of GND, resistor, and the floater in series, NF
-        
-        self.wifiName = ""
+		self.INPUT = machine.Pin(2, machine.Pin.IN, machine.Pin.PULL_UP) # Connection of GND, resistor, and the floater in series, NF
+		
+		self.wifiName = ""
 		self.wifiPassword = ""
 
 		self.STATIC_IP = "192.168.1.100"
@@ -63,7 +61,7 @@ class ESP32:
 			self.mainLoop()
 		except Exception as e:
 			print(f"\n\nError {e}\n\n")
-            machine.reset()
+			machine.reset()
 
 
 	def wifiConnection(self, name, password):
@@ -85,19 +83,19 @@ class ESP32:
 
 		time.sleep(0.5)
 		self.FLASH.off()
-    
+	
 	def mainLoop(self):
 		data = self.INPUT.value()
 		if data == '1': data = 0
 		else: data = 1
-  
+
 		self.espClient.sendData(data)
 		esp32.wake_on_ext0(pin = self.INPUT, level = esp32.WAKEUP_ALL_LOW)
-  
+
 		machine.deepsleep(5000)
 		
 
 
 if __name__ == "__main__":
-    print("\n\nStarting ESP32 server device...\n\n")
-    main = ESP32()
+	print("\n\nStarting ESP32 server device...\n\n")
+	main = ESP32()
